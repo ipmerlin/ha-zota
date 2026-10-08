@@ -3,6 +3,7 @@
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -104,6 +105,7 @@ class ZotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_user()
 
     @staticmethod
+    @callback
     def async_get_options_flow(config_entry):
         return ZotaOptionsFlow()
 

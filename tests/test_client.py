@@ -122,3 +122,77 @@ async def test_auth_failure_closes_tcp_connection(monkeypatch):
     with pytest.raises(ZotaAuthError):
         await client().fetch()
     assert writer.closed
+
+
+async def test_full_tcp_control_transaction(monkeypatch):
+    """Exercise auth, fresh read, grouped write and readback over loopback TCP."""
+    wire_commands = []
+    peer_done = asyncio.Event()
+    peer_errors = []
+
+    async def peer(reader, writer):
+        raw = CAPTURE
+        try:
+            link, opcode, length = struct.unpack("<HHH", await reader.readexactly(6))
+            auth = await reader.readexactly(length)
+            assert (link, opcode) == (0, 0)
+            assert struct.unpack("<HHII", auth) == (0, 24, 1234, 5678)
+            writer.write(frame(0, 1, b"\x00\x00\x00\x00"))
+            await writer.drain()
+            for _ in range(3):
+                link, opcode, length = struct.unpack("<HHH", await reader.readexactly(6))
+                payload = await reader.readexactly(length)
+                command = struct.unpack_from("<H", payload)[0]
+                wire_commands.append(command)
+                assert (link, opcode) == (1, 0)
+                if command == 9:
+                    assert payload[2:] == b"\xd7\x00" + CAPTURE[32:35]
+                    raw = raw[:30] + payload[2:] + raw[35:]
+                response = struct.pack("<HH", command, 0) + (raw if command == 1 else b"")
+                writer.write(frame(1, 1, response))
+                await writer.drain()
+        except Exception as err:
+            peer_errors.append(err)
+        finally:
+            writer.close()
+            await writer.wait_closed()
+            peer_done.set()
+
+    server = await asyncio.start_server(peer, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    real_connect = asyncio.open_connection
+
+    async def local_connect(host, requested_port):
+        assert host == "unused.invalid" and requested_port == 1977
+        return await real_connect("127.0.0.1", port)
+
+    monkeypatch.setattr(asyncio, "open_connection", local_connect)
+    async with server:
+        result = await client().set("air_target", 21.5)
+        await asyncio.wait_for(peer_done.wait(), 2)
+    assert not peer_errors
+    assert wire_commands == [1, 9, 1]
+    assert result.air_target == 21.5
+
+
+async def test_ack_without_readback_confirmation_fails_without_rewrite(monkeypatch):
+    api = client()
+    calls = []
+
+    @asynccontextmanager
+    async def connection():
+        yield None, None
+
+    async def request(reader, writer, command, payload=b""):
+        calls.append(command)
+        return CAPTURE if command == 1 else b""
+
+    async def no_sleep(seconds):
+        pass
+
+    monkeypatch.setattr(api, "_connection", connection)
+    monkeypatch.setattr(api, "_request", request)
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    with pytest.raises(ZotaError, match="readback"):
+        await api.set("air_target", 21.5)
+    assert calls == [1, 9, 1, 1, 1]
