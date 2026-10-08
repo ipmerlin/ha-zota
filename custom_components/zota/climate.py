@@ -48,6 +48,8 @@ class ZotaClimate(ZotaEntity, ClimateEntity):
     async def async_set_temperature(self, **kwargs):
         if ATTR_TEMPERATURE in kwargs:
             await self.coordinator.async_set("air_target", kwargs[ATTR_TEMPERATURE])
+        if "hvac_mode" in kwargs:
+            await self.async_set_hvac_mode(kwargs["hvac_mode"])
 
     async def async_set_hvac_mode(self, hvac_mode):
         if hvac_mode not in self.hvac_modes:

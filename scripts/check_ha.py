@@ -1,9 +1,11 @@
 """Smoke-check entity API compatibility with real Home Assistant."""
 
+import asyncio
 import sys
 from importlib import import_module
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from custom_components.zota.api import Boiler  # noqa: E402
@@ -41,4 +43,14 @@ assert (water.native_min_value, water.native_max_value, water.native_value) == (
 power = import_module("custom_components.zota.select").ZotaPower(coordinator)
 assert power.current_option == "3: 4.5 kW"
 assert len(power.options) == 8
+
+
+async def check_climate_services():
+    coordinator.async_set = AsyncMock()
+    await climate.async_set_temperature(temperature=21.5, hvac_mode="heat")
+    assert coordinator.async_set.await_args_list[0].args == ("air_target", 21.5)
+    assert coordinator.async_set.await_args_list[1].args == ("enabled", True)
+
+
+asyncio.run(check_climate_services())
 print("Home Assistant module imports and entity API smoke checks passed")
