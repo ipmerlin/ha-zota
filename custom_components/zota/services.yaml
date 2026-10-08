@@ -1,0 +1,60 @@
+get_schedule:
+  name: Read boiler schedule
+  description: Read the program currently returned by MK-X, with its revision.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: zota
+preview_schedule:
+  name: Preview schedule changes
+  description: Read-only preview. Period counts and unknown flags are preserved.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: zota
+    changes:
+      required: true
+      example: [{program_index: 0, period_index: 0, air_target: 22.1}]
+      selector:
+        object:
+save_schedule:
+  name: Save schedule changes
+  description: Write once and verify readback. Requires the before revision from a fresh preview.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: zota
+    changes:
+      required: true
+      example: [{program_index: 0, period_index: 0, air_target: 22.1}]
+      selector:
+        object:
+    expected_revision:
+      required: true
+      selector:
+        text:
+get_history:
+  name: Get ZOTA history
+  description: Fetch up to 31 days of archived readings. ISO timestamps must include timezone.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: zota
+    start:
+      required: true
+      example: "2026-10-08T12:00:00+03:00"
+      selector:
+        text:
+    end:
+      required: true
+      example: "2026-10-08T13:00:00+03:00"
+      selector:
+        text:

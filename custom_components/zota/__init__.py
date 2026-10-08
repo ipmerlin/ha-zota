@@ -5,6 +5,7 @@ from homeassistant.const import Platform
 from .api import Boiler, ZotaClient
 from .const import CONF_BOILER
 from .coordinator import ZotaCoordinator
+from .services import register_services
 
 PLATFORMS = [
     Platform.SENSOR,
@@ -14,6 +15,11 @@ PLATFORMS = [
     Platform.SELECT,
     Platform.SWITCH,
 ]
+
+
+async def async_setup(hass, config):
+    register_services(hass)
+    return True
 
 
 async def async_setup_entry(hass, entry):

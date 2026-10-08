@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 package = types.ModuleType("zota_wire")
 package.__path__ = [str(ROOT / "custom_components/zota")]
 sys.modules["zota_wire"] = package
-for name in ("const", "settings", "protocol", "api"):
+for name in ("const", "settings", "protocol", "api", "schedule", "history"):
     spec = importlib.util.spec_from_file_location(
         f"zota_wire.{name}", ROOT / "custom_components/zota" / f"{name}.py"
     )

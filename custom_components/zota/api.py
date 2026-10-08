@@ -95,6 +95,7 @@ class ZotaAccount:
         token = auth.get("access_token")
         if not isinstance(token, str) or not token:
             raise ZotaAuthError("Missing account token")
+        self._token = token
         data = await self._request(
             "GET", "/api/Boilers/GetBoilers", headers={"Authorization": f"Bearer {token}"}
         )
@@ -118,6 +119,11 @@ class ZotaAccount:
         except (KeyError, TypeError, ValueError) as err:
             raise ZotaError("Invalid boiler connection details") from err
         return result
+
+    @property
+    def token(self) -> str | None:
+        """Account access token for optional history requests, never the password."""
+        return self._token
 
 
 class ZotaClient:
@@ -215,3 +221,31 @@ class ZotaClient:
                 if attempt < 2:
                     await asyncio.sleep(1)
             raise ZotaError("Command acknowledged, but readback does not confirm the requested value")
+
+    async def schedule(self, changes=None, expected_revision=None, write=False, require_inactive=False) -> dict:
+        from .schedule import patch_program, program_view, revision
+
+        async with self._lock, self._connection() as (reader, writer):
+            raw = await self._request(reader, writer, 2)
+            before = program_view(raw)
+            if changes is None:
+                return before
+            state = BoilerState.parse(await self._request(reader, writer, 1))
+            if write and require_inactive and (state.raw[11] != 0 or state.raw[60] & 1):
+                raise ZotaError("Live schedule test cancelled: native thermostat is enabled or active")
+            patched = patch_program(raw, state, changes)
+            preview = {"before": before, "after": program_view(patched), "changed": raw != patched}
+            if not write:
+                return preview
+            if expected_revision != revision(raw):
+                raise ZotaError("Schedule changed since preview; obtain a new preview before saving")
+            if patched == raw:
+                return {**preview, "confirmed": True}
+            await self._request(reader, writer, 18, patched)
+            for attempt in range(3):
+                after = await self._request(reader, writer, 2)
+                if after == patched:
+                    return {**preview, "after": program_view(after), "confirmed": True}
+                if attempt < 2:
+                    await asyncio.sleep(1)
+            raise ZotaError("Schedule acknowledged but readback differs; no automatic write retry")

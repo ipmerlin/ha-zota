@@ -9,6 +9,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import ZotaAccount, ZotaClient
 from .const import (
+    CONF_ACCOUNT_TOKEN,
     CONF_ALLOW_HTTP,
     CONF_API_URL,
     CONF_BOILER,
@@ -41,10 +42,12 @@ class ZotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 boilers = await account.boilers()
                 self._boilers = {str(b.serial): b for b in boilers}
                 self._settings = {k: user_input[k] for k in (CONF_USERNAME, CONF_API_URL, CONF_ALLOW_HTTP)}
+                self._settings[CONF_ACCOUNT_TOKEN] = account.token
                 if not boilers:
                     errors["base"] = "no_boilers"
-                elif self.source == config_entries.SOURCE_REAUTH:
-                    entry = self._get_reauth_entry()
+                elif self.source in (config_entries.SOURCE_REAUTH, config_entries.SOURCE_RECONFIGURE):
+                    entry = (self._get_reauth_entry() if self.source == config_entries.SOURCE_REAUTH
+                             else self._get_reconfigure_entry())
                     serial = str(entry.data[CONF_BOILER]["serial"])
                     if serial not in self._boilers:
                         errors["base"] = "boiler_missing"
@@ -103,6 +106,10 @@ class ZotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(self, entry_data):
         self._settings = entry_data
         return await self.async_step_user()
+
+    async def async_step_reconfigure(self, user_input=None):
+        self._settings = self._get_reconfigure_entry().data
+        return await self.async_step_user(user_input)
 
     @staticmethod
     @callback

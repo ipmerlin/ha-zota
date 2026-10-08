@@ -27,7 +27,8 @@
     },
     "abort": {
       "already_configured": "Этот котёл уже настроен.",
-      "reauth_successful": "Учётные данные обновлены."
+      "reauth_successful": "Учётные данные обновлены.",
+      "reconfigure_successful": "Настройки обновлены."
     }
   },
   "options": {
@@ -309,6 +310,55 @@
       },
       "valve_close_output": {
         "name": "Выход закрытия клапана"
+      }
+    }
+  },
+  "services": {
+    "get_schedule": {
+      "name": "Прочитать расписание котла",
+      "fields": {
+        "entry_id": {
+          "name": "Интеграция ZOTA"
+        }
+      }
+    },
+    "preview_schedule": {
+      "name": "Предпросмотр изменения расписания",
+      "fields": {
+        "entry_id": {
+          "name": "Интеграция ZOTA"
+        },
+        "changes": {
+          "name": "Изменения периодов"
+        }
+      }
+    },
+    "save_schedule": {
+      "name": "Сохранить изменение расписания",
+      "fields": {
+        "entry_id": {
+          "name": "Интеграция ZOTA"
+        },
+        "changes": {
+          "name": "Изменения периодов"
+        },
+        "expected_revision": {
+          "name": "Версия до изменения из предпросмотра"
+        }
+      }
+    },
+    "get_history": {
+      "name": "Получить архив показаний ZOTA",
+      "fields": {
+        "entry_id": {
+          "name": "Интеграция ZOTA"
+        },
+        "start": {
+          "name": "Начало, ISO-время с часовым поясом"
+        },
+        "end": {
+          "name": "Конец, ISO-время с часовым поясом"
+        }
       }
     }
   }

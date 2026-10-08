@@ -21,6 +21,7 @@ for name in (
     "select",
     "switch",
     "diagnostics",
+    "services",
 ):
     import_module(f"custom_components.zota.{name}")
 
@@ -82,6 +83,28 @@ async def check_climate_services():
         all_entities.extend(entities)
     assert len({entity.unique_id for entity in all_entities}) == len(all_entities)
     print("Checked entity properties:", len(all_entities))
+    from homeassistant.core import HomeAssistant
+    from custom_components.zota.services import register_services
+
+    hass = HomeAssistant(str(Path.cwd()))
+    register_services(hass)
+    for service in ("get_schedule", "preview_schedule", "save_schedule", "get_history"):
+        assert hass.services.has_service("zota", service)
+    fake_entry = SimpleNamespace(domain="zota", runtime_data=coordinator, data={})
+    hass.config_entries.async_get_entry = lambda entry_id: fake_entry
+    coordinator.client.schedule = AsyncMock(return_value={"revision": "test", "confirmed": True})
+    coordinator.async_request_refresh = AsyncMock()
+    response = await hass.services.async_call("zota", "get_schedule", {"entry_id": "test"},
+                                             blocking=True, return_response=True)
+    assert response["revision"] == "test"
+    changes = [{"period_index": 0, "air_target": 22.1}]
+    await hass.services.async_call("zota", "preview_schedule", {"entry_id": "test", "changes": changes},
+                                   blocking=True, return_response=True)
+    assert coordinator.client.schedule.await_args.args == (changes, None, False)
+    await hass.services.async_call("zota", "save_schedule", {
+        "entry_id": "test", "changes": changes, "expected_revision": "0" * 64}, blocking=True)
+    assert coordinator.client.schedule.await_args.args == (changes, "0" * 64, True)
+    coordinator.async_request_refresh.assert_awaited_once()
 
 
 asyncio.run(check_climate_services())

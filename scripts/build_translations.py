@@ -135,6 +135,7 @@ for language, index in (("en", 0), ("ru", 1)):
             "abort": {
                 "already_configured": tr("This boiler is already configured.", "Этот котёл уже настроен."),
                 "reauth_successful": tr("Authentication updated.", "Учётные данные обновлены."),
+                "reconfigure_successful": tr("Configuration updated.", "Настройки обновлены."),
             },
         },
         "options": {
@@ -150,7 +151,33 @@ for language, index in (("en", 0), ("ru", 1)):
             }
         },
         "entity": {},
+        "services": {},
     }
+    service_names = {
+        "get_schedule": ("Read boiler schedule", "Прочитать расписание котла"),
+        "preview_schedule": ("Preview schedule changes", "Предпросмотр изменения расписания"),
+        "save_schedule": ("Save schedule changes", "Сохранить изменение расписания"),
+        "get_history": ("Get ZOTA history", "Получить архив показаний ZOTA"),
+    }
+    service_fields = {
+        "entry_id": ("ZOTA integration", "Интеграция ZOTA"),
+        "changes": ("Period changes", "Изменения периодов"),
+        "expected_revision": ("Before revision from preview", "Версия до изменения из предпросмотра"),
+        "start": ("Start, ISO time with timezone", "Начало, ISO-время с часовым поясом"),
+        "end": ("End, ISO time with timezone", "Конец, ISO-время с часовым поясом"),
+    }
+    for service, name in service_names.items():
+        fields = ["entry_id"]
+        if service in ("preview_schedule", "save_schedule"):
+            fields.append("changes")
+        if service == "save_schedule":
+            fields.append("expected_revision")
+        if service == "get_history":
+            fields.extend(("start", "end"))
+        data["services"][service] = {
+            "name": name[index],
+            "fields": {field: {"name": service_fields[field][index]} for field in fields},
+        }
     groups = {
         "climate": ["room"],
         "number": ["water_target", *settings.NUMBERS],

@@ -27,7 +27,8 @@
     },
     "abort": {
       "already_configured": "This boiler is already configured.",
-      "reauth_successful": "Authentication updated."
+      "reauth_successful": "Authentication updated.",
+      "reconfigure_successful": "Configuration updated."
     }
   },
   "options": {
@@ -309,6 +310,55 @@
       },
       "valve_close_output": {
         "name": "Valve closing output"
+      }
+    }
+  },
+  "services": {
+    "get_schedule": {
+      "name": "Read boiler schedule",
+      "fields": {
+        "entry_id": {
+          "name": "ZOTA integration"
+        }
+      }
+    },
+    "preview_schedule": {
+      "name": "Preview schedule changes",
+      "fields": {
+        "entry_id": {
+          "name": "ZOTA integration"
+        },
+        "changes": {
+          "name": "Period changes"
+        }
+      }
+    },
+    "save_schedule": {
+      "name": "Save schedule changes",
+      "fields": {
+        "entry_id": {
+          "name": "ZOTA integration"
+        },
+        "changes": {
+          "name": "Period changes"
+        },
+        "expected_revision": {
+          "name": "Before revision from preview"
+        }
+      }
+    },
+    "get_history": {
+      "name": "Get ZOTA history",
+      "fields": {
+        "entry_id": {
+          "name": "ZOTA integration"
+        },
+        "start": {
+          "name": "Start, ISO time with timezone"
+        },
+        "end": {
+          "name": "End, ISO time with timezone"
+        }
       }
     }
   }

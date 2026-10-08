@@ -7,6 +7,7 @@ CONF_API_URL = "api_url"
 CONF_BOILER = "boiler"
 CONF_INTERVAL = "update_interval"
 CONF_ALLOW_HTTP = "allow_http"
+CONF_ACCOUNT_TOKEN = "account_token"
 MODEL = "MK_X"
 BOILER_TYPE = 24
 PUMP_MODES = {"auto": 1, "on": 2, "off": 3}
