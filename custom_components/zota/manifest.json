@@ -1,0 +1,12 @@
+{
+  "domain": "zota",
+  "name": "ZOTA",
+  "codeowners": ["@ipmerlin"],
+  "config_flow": true,
+  "documentation": "https://github.com/ipmerlin/ha-zota",
+  "integration_type": "device",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/ipmerlin/ha-zota/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

@@ -1,0 +1,146 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZOTA Net",
+        "description": "Sign in to ZOTA Net. The app uses HTTP port 81: credentials travel without TLS. Enable the checkbox only if you accept this. MK-X communication uses cloud TCP without TLS. Password is used only for setup. Turning OFF the room thermostat stops the entire boiler.",
+        "data": {
+          "username": "Username",
+          "password": "Password",
+          "api_url": "Account API URL",
+          "allow_http": "Allow account credentials over HTTP without TLS"
+        }
+      },
+      "boiler": {
+        "title": "Select MK-X",
+        "description": "Only Internet-connected MK-X boilers are supported.",
+        "data": {
+          "boiler": "Boiler"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "ZOTA rejected the credentials.",
+      "cannot_connect": "Cannot read ZOTA data. Check API URL, HTTP checkbox and network access to TCP 1977.",
+      "no_boilers": "No Internet-connected MK-X found.",
+      "boiler_missing": "The configured boiler is missing from this account."
+    },
+    "abort": {
+      "already_configured": "This boiler is already configured.",
+      "reauth_successful": "Authentication updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling",
+        "data": {
+          "update_interval": "Polling interval (seconds, 60–3600)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "room": {
+        "name": "Room thermostat"
+      }
+    },
+    "number": {
+      "water_target": {
+        "name": "Water target temperature"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Boiler"
+      },
+      "weather_enabled": {
+        "name": "Weather regulation"
+      }
+    },
+    "select": {
+      "power_stage": {
+        "name": "Power limit",
+        "state": {
+          "off": "Off"
+        }
+      },
+      "pump_mode": {
+        "name": "Pump mode",
+        "state": {
+          "auto": "Automatic",
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "thermostat_type": {
+        "name": "Thermostat source",
+        "state": {
+          "none": "Not used",
+          "external": "External",
+          "internal": "Internal",
+          "opentherm": "OpenTherm"
+        }
+      }
+    },
+    "sensor": {
+      "actual_temp": {
+        "name": "Water temperature"
+      },
+      "air_temp": {
+        "name": "Room temperature"
+      },
+      "outside_temp": {
+        "name": "Outside temperature"
+      },
+      "dhw_temp": {
+        "name": "DHW temperature"
+      },
+      "air_target": {
+        "name": "Room target temperature"
+      },
+      "water_target": {
+        "name": "Water target temperature"
+      },
+      "calculated_target": {
+        "name": "Calculated water target"
+      },
+      "actual_power": {
+        "name": "Actual power"
+      },
+      "target_power": {
+        "name": "Power limit"
+      },
+      "pressure": {
+        "name": "Pressure"
+      },
+      "operation_mode": {
+        "name": "Operating mode",
+        "state": {
+          "work": "Running",
+          "stop": "Stopped",
+          "pause": "Paused",
+          "full_stop": "Fully stopped"
+        }
+      },
+      "circuit_mode": {
+        "name": "Pump circuit"
+      }
+    },
+    "binary_sensor": {
+      "pump_status": {
+        "name": "Pump output"
+      },
+      "external_off": {
+        "name": "External shutdown"
+      },
+      "errors": {
+        "name": "Faults"
+      },
+      "warnings": {
+        "name": "Warnings"
+      }
+    }
+  }
+}
