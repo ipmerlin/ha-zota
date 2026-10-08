@@ -69,8 +69,8 @@ for language, index in (("en", 0), ("ru", 1)):
                     "Не удалось прочитать данные ZOTA. Проверьте адрес API, флажок HTTP и доступ к TCP 1977.",
                 ),
                 "no_boilers": tr(
-                    "No Internet-connected MK-X found.",
-                    "В учётной записи нет MK-X с подключением к Интернету.",
+                    "No MK-X found in this account.",
+                    "В учётной записи нет котлов MK-X.",
                 ),
                 "boiler_missing": tr(
                     "The configured boiler is missing from this account.",

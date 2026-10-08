@@ -103,6 +103,23 @@ def test_http_requires_explicit_opt_in():
     ZotaAccount(None, "https://control.zota.ru", "user", "secret")
 
 
+@pytest.mark.parametrize("internet_flag", [False, True, None])
+async def test_account_lists_mk_x_regardless_of_internet_flag(monkeypatch, internet_flag):
+    account = ZotaAccount(None, "https://control.zota.ru", "user", "secret")
+
+    async def request(method, path, **kwargs):
+        if path == "/token":
+            return {"access_token": "test-token"}
+        return {"boilers": [
+            {"Type": "MK_X", "InternetConnection": internet_flag, "Serial": 1234,
+             "Password": 5678, "Server": "unused.invalid", "BoilerName": "Test"},
+            {"Type": "OTHER", "InternetConnection": True},
+        ]}
+
+    monkeypatch.setattr(account, "_request", request)
+    assert await account.boilers() == [Boiler(1234, "Test", "unused.invalid", 5678)]
+
+
 async def test_auth_failure_closes_tcp_connection(monkeypatch):
     class ClosingWriter(Writer):
         closed = False

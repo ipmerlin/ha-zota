@@ -102,7 +102,9 @@ class ZotaAccount:
         result = []
         try:
             for row in rows:
-                if row.get("Type") != MODEL or not row.get("InternetConnection"):
+                # The account flag can be false even for a reachable cloud boiler.
+                # Verify connectivity with a telemetry read during configuration.
+                if row.get("Type") != MODEL:
                     continue
                 serial, password = int(row["Serial"]), int(row["Password"])
                 server = str(row["Server"])
