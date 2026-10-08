@@ -1,5 +1,7 @@
 """Account login, boiler selection and polling options."""
 
+import logging
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -20,6 +22,8 @@ from .const import (
 )
 from .protocol import ZotaAuthError, ZotaError
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class ZotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
@@ -31,6 +35,7 @@ class ZotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
+            stage = "account"
             try:
                 account = ZotaAccount(
                     async_get_clientsession(self.hass),
@@ -52,7 +57,9 @@ class ZotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     if serial not in self._boilers:
                         errors["base"] = "boiler_missing"
                     else:
-                        await ZotaClient(self._boilers[serial]).fetch()
+                        if self.source == config_entries.SOURCE_REAUTH:
+                            stage = "boiler"
+                            await ZotaClient(self._boilers[serial]).fetch()
                         return self.async_update_reload_and_abort(
                             entry,
                             data_updates={**self._settings, CONF_BOILER: self._boilers[serial].as_config()},
@@ -61,8 +68,10 @@ class ZotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self.async_step_boiler()
             except ZotaAuthError:
                 errors["base"] = "invalid_auth"
-            except ZotaError:
-                errors["base"] = "cannot_connect"
+            except ZotaError as err:
+                # ZotaError text is sanitized by the client; never log credentials or the cause.
+                _LOGGER.warning("ZOTA setup failed at %s: %s", stage, err)
+                errors["base"] = "account_connect" if stage == "account" else "boiler_connect"
         defaults = user_input or self._settings
         return self.async_show_form(
             step_id="user",
@@ -89,8 +98,9 @@ class ZotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await ZotaClient(boiler).fetch()
             except ZotaAuthError:
                 errors["base"] = "invalid_auth"
-            except ZotaError:
-                errors["base"] = "cannot_connect"
+            except ZotaError as err:
+                _LOGGER.warning("ZOTA boiler verification failed: %s", err)
+                errors["base"] = "boiler_connect"
             else:
                 return self.async_create_entry(
                     title=boiler.name, data={**self._settings, CONF_BOILER: boiler.as_config()}

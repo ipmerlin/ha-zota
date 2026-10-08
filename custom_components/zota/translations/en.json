@@ -22,6 +22,8 @@
     "error": {
       "invalid_auth": "ZOTA rejected the credentials.",
       "cannot_connect": "Cannot read ZOTA data. Check API URL, HTTP checkbox and network access to TCP 1977.",
+      "account_connect": "Cannot contact the ZOTA account API from Home Assistant. Check HTTP port 81, DNS and API URL. See the ZOTA log for the reason.",
+      "boiler_connect": "Account login succeeded, but Home Assistant could not read the boiler over TCP 1977. Check network access and see the ZOTA log.",
       "no_boilers": "No MK-X found in this account.",
       "boiler_missing": "The configured boiler is missing from this account."
     },

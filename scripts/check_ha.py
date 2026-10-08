@@ -5,7 +5,7 @@ import sys
 from importlib import import_module
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from custom_components.zota.api import Boiler  # noqa: E402
@@ -105,6 +105,42 @@ async def check_climate_services():
         "entry_id": "test", "changes": changes, "expected_revision": "0" * 64}, blocking=True)
     assert coordinator.client.schedule.await_args.args == (changes, "0" * 64, True)
     coordinator.async_request_refresh.assert_awaited_once()
+    await check_configuration_paths(hass)
+
+
+async def check_configuration_paths(hass):
+    from homeassistant import config_entries
+    from custom_components.zota.protocol import ZotaError
+
+    module = import_module("custom_components.zota.config_flow")
+    boiler = Boiler(1234, "Test", "unused.invalid", 0)
+    entry = SimpleNamespace(data={"boiler": boiler.as_config()})
+    account = SimpleNamespace(boilers=AsyncMock(return_value=[boiler]), token="fresh-token")
+    user_input = {"username": "test-user", "password": "test-password",
+                  "api_url": "http://control.zota.ru:81", "allow_http": True}
+    with patch.object(module, "ZotaAccount", return_value=account), \
+         patch.object(module, "async_get_clientsession", return_value=None), \
+         patch.object(module.ZotaClient, "fetch", AsyncMock(side_effect=ZotaError("TCP unavailable"))) as fetch:
+        flow = module.ZotaConfigFlow()
+        flow.hass = hass
+        flow.context = {"source": config_entries.SOURCE_RECONFIGURE}
+        flow._get_reconfigure_entry = lambda: entry
+        flow.async_update_reload_and_abort = lambda entry, **kwargs: {"type": "abort", **kwargs}
+        flow.async_show_form = lambda **kwargs: kwargs
+        result = await flow.async_step_user(user_input)
+        assert result["type"] == "abort" and result["data_updates"]["account_token"] == "fresh-token"
+        assert "password" not in result["data_updates"]
+        fetch.assert_not_awaited()
+
+        flow.context = {"source": config_entries.SOURCE_REAUTH}
+        flow._get_reauth_entry = lambda: entry
+        result = await flow.async_step_user(user_input)
+        assert result["errors"] == {"base": "boiler_connect"}
+
+        account.boilers.side_effect = ZotaError("API unavailable")
+        flow.context = {"source": config_entries.SOURCE_RECONFIGURE}
+        result = await flow.async_step_user(user_input)
+        assert result["errors"] == {"base": "account_connect"}
 
 
 asyncio.run(check_climate_services())

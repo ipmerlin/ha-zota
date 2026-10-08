@@ -123,6 +123,14 @@ for language, index in (("en", 0), ("ru", 1)):
                     "Cannot read ZOTA data. Check API URL, HTTP checkbox and network access to TCP 1977.",
                     "Не удалось прочитать данные ZOTA. Проверьте адрес API, флажок HTTP и доступ к TCP 1977.",
                 ),
+                "account_connect": tr(
+                    "Cannot contact the ZOTA account API from Home Assistant. Check HTTP port 81, DNS and API URL. See the ZOTA log for the reason.",
+                    "Home Assistant не смог обратиться к API учётной записи ZOTA. Проверьте доступ к HTTP-порту 81, DNS и адрес API. Причина указана в журнале ZOTA.",
+                ),
+                "boiler_connect": tr(
+                    "Account login succeeded, but Home Assistant could not read the boiler over TCP 1977. Check network access and see the ZOTA log.",
+                    "Вход в учётную запись выполнен, но Home Assistant не смог прочитать котёл по TCP 1977. Проверьте сетевой доступ и журнал ZOTA.",
+                ),
                 "no_boilers": tr(
                     "No MK-X found in this account.",
                     "В учётной записи нет котлов MK-X.",
