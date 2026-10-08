@@ -20,4 +20,5 @@ class ZotaEntity(CoordinatorEntity):
             model="MK-X",
             serial_number=str(boiler.serial),
             configuration_url=f"https://control.zota.ru/MK_X/{boiler.serial}",
+            sw_version=(coordinator.data.details or {}).get("firmware") if coordinator.data else None,
         )

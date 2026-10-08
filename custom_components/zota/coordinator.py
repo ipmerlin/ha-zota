@@ -1,6 +1,7 @@
 """Central poll and control handling."""
 
 import logging
+from dataclasses import replace
 from datetime import timedelta
 
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
@@ -27,7 +28,7 @@ class ZotaCoordinator(DataUpdateCoordinator[BoilerState]):
 
     async def _async_update_data(self):
         try:
-            return await self.client.fetch()
+            return await self.client.fetch(extended=True)
         except ZotaAuthError as err:
             raise ConfigEntryAuthFailed("ZOTA boiler authentication failed") from err
         except ZotaError as err:
@@ -41,4 +42,4 @@ class ZotaCoordinator(DataUpdateCoordinator[BoilerState]):
             self.async_set_update_error(UpdateFailed(str(err)))
             await self.async_request_refresh()
             raise HomeAssistantError(str(err)) from err
-        self.async_set_updated_data(state)
+        self.async_set_updated_data(replace(state, details=self.data.details if self.data else None))

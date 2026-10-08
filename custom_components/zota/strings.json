@@ -49,6 +49,69 @@
     "number": {
       "water_target": {
         "name": "Water target temperature"
+      },
+      "air_hysteresis_upper": {
+        "name": "Room upper hysteresis"
+      },
+      "air_hysteresis_lower": {
+        "name": "Room lower hysteresis"
+      },
+      "air_correction": {
+        "name": "Room sensor correction"
+      },
+      "water_max": {
+        "name": "Maximum water target"
+      },
+      "water_min": {
+        "name": "Minimum water target"
+      },
+      "water_low_warning": {
+        "name": "Low water temperature warning"
+      },
+      "dhw_target": {
+        "name": "DHW target"
+      },
+      "dhw_max": {
+        "name": "Maximum DHW target"
+      },
+      "dhw_correction": {
+        "name": "DHW sensor correction"
+      },
+      "pressure_max": {
+        "name": "Maximum pressure protection threshold"
+      },
+      "pressure_high_warning": {
+        "name": "High pressure warning threshold"
+      },
+      "pressure_low_warning": {
+        "name": "Low pressure warning threshold"
+      },
+      "pressure_min": {
+        "name": "Minimum pressure protection threshold"
+      },
+      "weather_coefficient": {
+        "name": "Weather curve coefficient"
+      },
+      "outside_correction": {
+        "name": "Outside sensor correction"
+      },
+      "summer_threshold": {
+        "name": "Summer transition temperature"
+      },
+      "weather_room_target": {
+        "name": "Weather virtual room target"
+      },
+      "pump_delay": {
+        "name": "Pump stop delay"
+      },
+      "valve_travel_time": {
+        "name": "Valve travel time"
+      },
+      "external_water_reduction": {
+        "name": "External thermostat water reduction"
+      },
+      "external_power_stage": {
+        "name": "External thermostat power stage"
       }
     },
     "switch": {
@@ -57,6 +120,18 @@
       },
       "weather_enabled": {
         "name": "Weather regulation"
+      },
+      "antilegionella_enabled": {
+        "name": "DHW antilegionella"
+      },
+      "pressure_protection": {
+        "name": "Pressure protection"
+      },
+      "power_on_delay": {
+        "name": "Power activation delay"
+      },
+      "auto_winter_summer": {
+        "name": "Automatic winter/summer"
       }
     },
     "select": {
@@ -81,6 +156,55 @@
           "external": "External",
           "internal": "Internal",
           "opentherm": "OpenTherm"
+        }
+      },
+      "power_accuracy": {
+        "name": "Power regulation accuracy",
+        "state": {
+          "coarse": "Coarse",
+          "fine": "Fine"
+        }
+      },
+      "pump_circuit": {
+        "name": "Pump circuit setting",
+        "state": {
+          "boiler": "Boiler",
+          "heating": "Heating",
+          "heating_dhw": "Heating/DHW valve",
+          "off_after_water_heating": "Stop after water heating",
+          "off_after_dhw_heating": "Stop after DHW heating"
+        }
+      },
+      "valve_type": {
+        "name": "Valve type",
+        "state": {
+          "none": "Not used",
+          "switching": "Switching"
+        }
+      },
+      "valve_mode": {
+        "name": "Valve mode",
+        "state": {
+          "none": "Not used",
+          "dhw_priority": "DHW priority",
+          "heating": "Heating",
+          "dhw": "DHW"
+        }
+      },
+      "external_response": {
+        "name": "External thermostat response",
+        "state": {
+          "boiler_off": "Stop boiler",
+          "pump_off": "Stop pump",
+          "reduce_water": "Reduce water temperature",
+          "reduce_power": "Reduce power"
+        }
+      },
+      "external_contact": {
+        "name": "External thermostat contact",
+        "state": {
+          "normally_closed": "Normally closed",
+          "normally_open": "Normally open"
         }
       }
     },
@@ -126,6 +250,39 @@
       },
       "circuit_mode": {
         "name": "Pump circuit"
+      },
+      "aux_temp": {
+        "name": "AUX temperature"
+      },
+      "ssr_temp": {
+        "name": "SSR temperature"
+      },
+      "scheme": {
+        "name": "Hydraulic scheme"
+      },
+      "weather_target": {
+        "name": "Weather target"
+      },
+      "gsm_signal": {
+        "name": "GSM signal code"
+      },
+      "dhw_state": {
+        "name": "DHW circuit state"
+      },
+      "thermostat_program": {
+        "name": "Thermostat program"
+      },
+      "controller_time": {
+        "name": "Controller time"
+      },
+      "nominal_power": {
+        "name": "Nominal power"
+      },
+      "firmware": {
+        "name": "Controller firmware"
+      },
+      "indicator_firmware": {
+        "name": "Indicator firmware"
       }
     },
     "binary_sensor": {
@@ -140,6 +297,18 @@
       },
       "warnings": {
         "name": "Warnings"
+      },
+      "antilegionella_active": {
+        "name": "Antilegionella active"
+      },
+      "thermostat_active": {
+        "name": "Thermostat program active"
+      },
+      "valve_open_output": {
+        "name": "Valve opening output"
+      },
+      "valve_close_output": {
+        "name": "Valve closing output"
       }
     }
   }

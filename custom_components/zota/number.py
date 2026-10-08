@@ -1,15 +1,18 @@
 """Water temperature setpoint with limits read from the boiler."""
 
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import EntityCategory, UnitOfTemperature
 
 from .entity import ZotaEntity
+from .settings import NUMBERS, setting_limits
 
 PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    async_add_entities([ZotaWaterTarget(entry.runtime_data)])
+    async_add_entities([ZotaWaterTarget(entry.runtime_data)] + [
+        ZotaSettingNumber(entry.runtime_data, key) for key in NUMBERS
+    ])
 
 
 class ZotaWaterTarget(ZotaEntity, NumberEntity):
@@ -36,3 +39,44 @@ class ZotaWaterTarget(ZotaEntity, NumberEntity):
 
     async def async_set_native_value(self, value):
         await self.coordinator.async_set("water_target", value)
+
+
+class ZotaSettingNumber(ZotaEntity, NumberEntity):
+    _attr_mode = NumberMode.BOX
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator, key):
+        super().__init__(coordinator, key)
+        self._key = key
+        spec = NUMBERS[key]
+        self._attr_translation_key = key
+        self._attr_native_step = 1 / spec.scale
+        self._attr_native_unit_of_measurement = spec.unit
+        if spec.unit == "°C":
+            self._attr_device_class = NumberDeviceClass.TEMPERATURE
+        if key in ("pressure_min", "pressure_max", "pressure_high_warning", "pressure_low_warning",
+                   "valve_travel_time"):
+            self._attr_entity_registry_enabled_default = False
+
+    @property
+    def native_value(self):
+        value = self.coordinator.data.values()[self._key]
+        # ZOTA uses 19 (below the allowed range) to represent disabled DHW.
+        return None if self._key == "dhw_target" and value < 20 else value
+
+    @property
+    def extra_state_attributes(self):
+        if self._key == "dhw_target":
+            return {"regulation_enabled": self.coordinator.data.values()[self._key] >= 20}
+        return None
+
+    @property
+    def native_min_value(self):
+        return setting_limits(self.coordinator.data.raw, self._key)[0]
+
+    @property
+    def native_max_value(self):
+        return setting_limits(self.coordinator.data.raw, self._key)[1]
+
+    async def async_set_native_value(self, value):
+        await self.coordinator.async_set(self._key, value)

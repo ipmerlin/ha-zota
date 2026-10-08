@@ -19,6 +19,17 @@ SENSORS = {
     "pressure": (SensorDeviceClass.PRESSURE, UnitOfPressure.BAR),
     "operation_mode": (SensorDeviceClass.ENUM, None),
     "circuit_mode": (None, None),
+    "aux_temp": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+    "ssr_temp": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+    "scheme": (None, None),
+    "weather_target": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+    "gsm_signal": (None, None),
+    "dhw_state": (None, None),
+    "thermostat_program": (None, None),
+    "controller_time": (None, None),
+    "nominal_power": (SensorDeviceClass.POWER, UnitOfPower.KILO_WATT),
+    "firmware": (None, None),
+    "indicator_firmware": (None, None),
 }
 OP_MODES = {0: "work", 1: "stop", 2: "pause", 3: "full_stop"}
 
@@ -41,5 +52,15 @@ class ZotaSensor(ZotaEntity, SensorEntity):
 
     @property
     def native_value(self):
-        value = self.coordinator.data.values()[self._key]
+        value = self.coordinator.data.values().get(self._key)
         return OP_MODES.get(value) if self._key == "operation_mode" else value
+
+    @property
+    def extra_state_attributes(self):
+        values = self.coordinator.data.values()
+        if self._key in ("aux_temp", "ssr_temp"):
+            return {"sensor_role": values["sensor_roles"][5 if self._key == "aux_temp" else 4]}
+        if self._key == "thermostat_program":
+            return {key: values[key] for key in ("program_mode", "program_periods", "program_days")
+                    if key in values}
+        return None

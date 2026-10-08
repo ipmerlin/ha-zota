@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import struct
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from urllib.parse import urlparse
 
 import aiohttp
@@ -17,6 +17,8 @@ from .protocol import (
     ZotaError,
     auth_frame,
     command_frame,
+    parse_info,
+    parse_program,
     setting_command,
     setting_matches,
 )
@@ -125,6 +127,7 @@ class ZotaClient:
         self.boiler = boiler
         self.timeout = timeout
         self._lock = asyncio.Lock()
+        self._info = {}
 
     @asynccontextmanager
     async def _connection(self):
@@ -179,9 +182,23 @@ class ZotaClient:
             return body[4:]
         raise ZotaError("Missing matching command response")
 
-    async def fetch(self) -> BoilerState:
+    async def fetch(self, extended: bool = False) -> BoilerState:
         async with self._lock, self._connection() as (reader, writer):
-            return BoilerState.parse(await self._request(reader, writer, 1))
+            state = BoilerState.parse(await self._request(reader, writer, 1))
+            if not extended:
+                return state
+            details = dict(self._info)
+            try:
+                if not self._info:
+                    self._info = parse_info(await self._request(reader, writer, 0))
+                    details.update(self._info)
+                details.update(parse_program(await self._request(reader, writer, 2)))
+            except ZotaAuthError:
+                raise
+            except ZotaError:
+                # Optional unsupported data must not hide valid main telemetry.
+                pass
+            return replace(state, details=details)
 
     async def set(self, key: str, value) -> BoilerState:
         async with self._lock, self._connection() as (reader, writer):

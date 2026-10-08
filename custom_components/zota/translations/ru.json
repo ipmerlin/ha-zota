@@ -49,6 +49,69 @@
     "number": {
       "water_target": {
         "name": "Уставка теплоносителя"
+      },
+      "air_hysteresis_upper": {
+        "name": "Гистерезис воздуха сверху"
+      },
+      "air_hysteresis_lower": {
+        "name": "Гистерезис воздуха снизу"
+      },
+      "air_correction": {
+        "name": "Поправка датчика воздуха"
+      },
+      "water_max": {
+        "name": "Максимальная уставка воды"
+      },
+      "water_min": {
+        "name": "Минимальная уставка воды"
+      },
+      "water_low_warning": {
+        "name": "Порог низкой температуры воды"
+      },
+      "dhw_target": {
+        "name": "Уставка ГВС"
+      },
+      "dhw_max": {
+        "name": "Максимальная уставка ГВС"
+      },
+      "dhw_correction": {
+        "name": "Поправка датчика ГВС"
+      },
+      "pressure_max": {
+        "name": "Верхний порог защиты по давлению"
+      },
+      "pressure_high_warning": {
+        "name": "Верхний порог предупреждения по давлению"
+      },
+      "pressure_low_warning": {
+        "name": "Нижний порог предупреждения по давлению"
+      },
+      "pressure_min": {
+        "name": "Нижний порог защиты по давлению"
+      },
+      "weather_coefficient": {
+        "name": "Коэффициент ПЗА"
+      },
+      "outside_correction": {
+        "name": "Поправка уличного датчика"
+      },
+      "summer_threshold": {
+        "name": "Температура перехода в лето"
+      },
+      "weather_room_target": {
+        "name": "Виртуальная температура помещения ПЗА"
+      },
+      "pump_delay": {
+        "name": "Задержка отключения насоса"
+      },
+      "valve_travel_time": {
+        "name": "Время полного хода клапана"
+      },
+      "external_water_reduction": {
+        "name": "Снижение температуры внешним термостатом"
+      },
+      "external_power_stage": {
+        "name": "Ступень мощности внешнего термостата"
       }
     },
     "switch": {
@@ -57,6 +120,18 @@
       },
       "weather_enabled": {
         "name": "Погодозависимое регулирование"
+      },
+      "antilegionella_enabled": {
+        "name": "Антилегионелла ГВС"
+      },
+      "pressure_protection": {
+        "name": "Защита по давлению"
+      },
+      "power_on_delay": {
+        "name": "Задержка включения мощности"
+      },
+      "auto_winter_summer": {
+        "name": "Автоматический переход зима/лето"
       }
     },
     "select": {
@@ -81,6 +156,55 @@
           "external": "Внешний",
           "internal": "Внутренний",
           "opentherm": "OpenTherm"
+        }
+      },
+      "power_accuracy": {
+        "name": "Точность регулирования мощности",
+        "state": {
+          "coarse": "Грубая",
+          "fine": "Точная"
+        }
+      },
+      "pump_circuit": {
+        "name": "Назначение контура насоса",
+        "state": {
+          "boiler": "Котёл",
+          "heating": "Отопление",
+          "heating_dhw": "Клапан отопление/ГВС",
+          "off_after_water_heating": "Отключать после нагрева воды",
+          "off_after_dhw_heating": "Отключать после нагрева ГВС"
+        }
+      },
+      "valve_type": {
+        "name": "Тип клапана",
+        "state": {
+          "none": "Не используется",
+          "switching": "Переключающий"
+        }
+      },
+      "valve_mode": {
+        "name": "Режим клапана",
+        "state": {
+          "none": "Не используется",
+          "dhw_priority": "Приоритет ГВС",
+          "heating": "Отопление",
+          "dhw": "ГВС"
+        }
+      },
+      "external_response": {
+        "name": "Реакция на внешний термостат",
+        "state": {
+          "boiler_off": "Отключить котёл",
+          "pump_off": "Отключить насос",
+          "reduce_water": "Снизить температуру воды",
+          "reduce_power": "Снизить мощность"
+        }
+      },
+      "external_contact": {
+        "name": "Контакт внешнего термостата",
+        "state": {
+          "normally_closed": "Нормально замкнутый",
+          "normally_open": "Нормально разомкнутый"
         }
       }
     },
@@ -126,6 +250,39 @@
       },
       "circuit_mode": {
         "name": "Контур"
+      },
+      "aux_temp": {
+        "name": "Температура AUX"
+      },
+      "ssr_temp": {
+        "name": "Температура SSR"
+      },
+      "scheme": {
+        "name": "Схема подключения"
+      },
+      "weather_target": {
+        "name": "Уставка ПЗА контроллера"
+      },
+      "gsm_signal": {
+        "name": "Уровень GSM (код)"
+      },
+      "dhw_state": {
+        "name": "Состояние контура ГВС"
+      },
+      "thermostat_program": {
+        "name": "Программа термостата"
+      },
+      "controller_time": {
+        "name": "Время контроллера"
+      },
+      "nominal_power": {
+        "name": "Номинальная мощность"
+      },
+      "firmware": {
+        "name": "Прошивка контроллера"
+      },
+      "indicator_firmware": {
+        "name": "Прошивка индикатора"
       }
     },
     "binary_sensor": {
@@ -140,6 +297,18 @@
       },
       "warnings": {
         "name": "Предупреждения"
+      },
+      "antilegionella_active": {
+        "name": "Антилегионелла активна"
+      },
+      "thermostat_active": {
+        "name": "Программа термостата активна"
+      },
+      "valve_open_output": {
+        "name": "Выход открытия клапана"
+      },
+      "valve_close_output": {
+        "name": "Выход закрытия клапана"
       }
     }
   }

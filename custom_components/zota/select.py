@@ -1,9 +1,11 @@
 """Discrete power stages, pump mode and thermostat source."""
 
 from homeassistant.components.select import SelectEntity
+from homeassistant.const import EntityCategory
 
 from .const import PUMP_MODES, THERMOSTAT_TYPES
 from .entity import ZotaEntity
+from .settings import SELECTS
 
 PARALLEL_UPDATES = 0
 
@@ -15,7 +17,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             ZotaPower(coordinator),
             ZotaMode(coordinator, "pump_mode", PUMP_MODES),
             ZotaMode(coordinator, "thermostat_type", THERMOSTAT_TYPES),
-        ]
+        ] + [ZotaMode(coordinator, key, spec[1]) for key, spec in SELECTS.items()]
     )
 
 
@@ -47,6 +49,8 @@ class ZotaMode(ZotaEntity, SelectEntity):
         self._options = options
         self._attr_translation_key = key
         self._attr_options = list(options)
+        if key in SELECTS:
+            self._attr_entity_category = EntityCategory.CONFIG
 
     @property
     def current_option(self):

@@ -3,6 +3,7 @@
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 
 from .entity import ZotaEntity
+from .protocol import fault_details
 
 PARALLEL_UPDATES = 0
 
@@ -11,7 +12,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(
         [
             ZotaBinarySensor(entry.runtime_data, key)
-            for key in ("pump_status", "external_off", "errors", "warnings")
+            for key in ("pump_status", "external_off", "errors", "warnings", "antilegionella_active",
+                        "thermostat_active", "valve_open_output", "valve_close_output")
         ]
     )
 
@@ -31,5 +33,6 @@ class ZotaBinarySensor(ZotaEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self):
         if self._key in ("errors", "warnings"):
-            return {"code": self.coordinator.data.values()[self._key]}
+            code = self.coordinator.data.values()[self._key]
+            return {"code": code, **fault_details(code, self._key == "warnings")}
         return None
