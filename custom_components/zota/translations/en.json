@@ -316,6 +316,7 @@
   "services": {
     "get_schedule": {
       "name": "Read boiler schedule",
+      "description": "Read the returned program and its revision.",
       "fields": {
         "entry_id": {
           "name": "ZOTA integration"
@@ -324,6 +325,7 @@
     },
     "preview_schedule": {
       "name": "Preview schedule changes",
+      "description": "Preview changes without writing to the boiler.",
       "fields": {
         "entry_id": {
           "name": "ZOTA integration"
@@ -335,6 +337,7 @@
     },
     "save_schedule": {
       "name": "Save schedule changes",
+      "description": "Write once using the preview revision, then verify readback.",
       "fields": {
         "entry_id": {
           "name": "ZOTA integration"
@@ -349,6 +352,7 @@
     },
     "get_history": {
       "name": "Get ZOTA history",
+      "description": "Get up to 31 days of archived readings using ISO times with timezone.",
       "fields": {
         "entry_id": {
           "name": "ZOTA integration"

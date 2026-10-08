@@ -159,6 +159,12 @@ for language, index in (("en", 0), ("ru", 1)):
         "save_schedule": ("Save schedule changes", "Сохранить изменение расписания"),
         "get_history": ("Get ZOTA history", "Получить архив показаний ZOTA"),
     }
+    service_descriptions = {
+        "get_schedule": ("Read the returned program and its revision.", "Прочитать возвращённую котлом программу и её версию."),
+        "preview_schedule": ("Preview changes without writing to the boiler.", "Проверить изменения без записи в котёл."),
+        "save_schedule": ("Write once using the preview revision, then verify readback.", "Записать один раз с проверкой версии предпросмотра, затем проверить чтением."),
+        "get_history": ("Get up to 31 days of archived readings using ISO times with timezone.", "Получить архив показаний за интервал до 31 дня. Укажите ISO-время с часовым поясом."),
+    }
     service_fields = {
         "entry_id": ("ZOTA integration", "Интеграция ZOTA"),
         "changes": ("Period changes", "Изменения периодов"),
@@ -176,6 +182,7 @@ for language, index in (("en", 0), ("ru", 1)):
             fields.extend(("start", "end"))
         data["services"][service] = {
             "name": name[index],
+            "description": service_descriptions[service][index],
             "fields": {field: {"name": service_fields[field][index]} for field in fields},
         }
     groups = {

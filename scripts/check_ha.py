@@ -91,7 +91,7 @@ async def check_climate_services():
     for service in ("get_schedule", "preview_schedule", "save_schedule", "get_history"):
         assert hass.services.has_service("zota", service)
     fake_entry = SimpleNamespace(domain="zota", runtime_data=coordinator, data={})
-    hass.config_entries.async_get_entry = lambda entry_id: fake_entry
+    hass.config_entries = SimpleNamespace(async_get_entry=lambda entry_id: fake_entry)
     coordinator.client.schedule = AsyncMock(return_value={"revision": "test", "confirmed": True})
     coordinator.async_request_refresh = AsyncMock()
     response = await hass.services.async_call("zota", "get_schedule", {"entry_id": "test"},
