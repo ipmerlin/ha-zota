@@ -272,4 +272,8 @@ def setting_command(state: BoilerState, key: str, value) -> tuple[int, bytes]:
 def setting_matches(state: BoilerState, key: str, value) -> bool:
     """Verify actual readback without optimistic state updates."""
     actual = state.values()[key] if key == "thermostat_type" or key in SETTINGS else getattr(state, key)
+    # HA sliders can supply e.g. 8.700000000000001 for a valid 8.7 C step.
+    # Tolerance covers floating point noise, never a different wire step.
+    if key == "air_target" or key in NUMBERS:
+        return math.isclose(actual, value, rel_tol=0, abs_tol=1e-8)
     return actual == value

@@ -60,9 +60,10 @@ async def test_oversized_header_rejected_before_reading_body():
         await client()._read_frame(reader_for(struct.pack("<HHH", 1, 1, 65535)))
 
 
-async def test_control_reads_fresh_block_and_verifies_readback(monkeypatch):
+@pytest.mark.parametrize("requested,tenths", [(21.5, 215), (8.700000000000001, 87)])
+async def test_control_reads_fresh_block_and_verifies_readback(monkeypatch, requested, tenths):
     changed = bytearray(CAPTURE)
-    struct.pack_into("<h", changed, 30, 215)
+    struct.pack_into("<h", changed, 30, tenths)
     reader = reader_for(
         frame(1, 1, b"\x01\x00\x00\x00" + CAPTURE),
         frame(1, 1, b"\x09\x00\x00\x00"),
@@ -76,8 +77,8 @@ async def test_control_reads_fresh_block_and_verifies_readback(monkeypatch):
 
     api = client()
     monkeypatch.setattr(api, "_connection", connection)
-    state = await api.set("air_target", 21.5)
-    assert state.air_target == 21.5
+    state = await api.set("air_target", requested)
+    assert state.air_target == tenths / 10
     assert [struct.unpack_from("<H", p, 6)[0] for p in writer.sent] == [1, 9, 1]
     assert writer.sent[1][10:] == CAPTURE[32:35]
 
@@ -212,4 +213,45 @@ async def test_ack_without_readback_confirmation_fails_without_rewrite(monkeypat
     monkeypatch.setattr(asyncio, "sleep", no_sleep)
     with pytest.raises(ZotaError, match="readback"):
         await api.set("air_target", 21.5)
-    assert calls == [1, 9, 1, 1, 1]
+    assert calls == [1, 9, 1, 1, 1, 1, 1]
+
+
+async def test_delayed_cloud_readback_confirms_without_rewriting(monkeypatch):
+    api = client()
+    calls, delays = [], []
+    changed = bytearray(CAPTURE)
+    struct.pack_into("<h", changed, 30, 265)
+
+    @asynccontextmanager
+    async def connection():
+        yield None, None
+
+    async def request(reader, writer, command, payload=b""):
+        calls.append(command)
+        if command != 1:
+            return b""
+        return bytes(changed) if calls.count(1) == 6 else CAPTURE
+
+    async def sleep(seconds):
+        delays.append(seconds)
+
+    monkeypatch.setattr(api, "_connection", connection)
+    monkeypatch.setattr(api, "_request", request)
+    monkeypatch.setattr(asyncio, "sleep", sleep)
+    assert (await api.set("air_target", 26.5)).air_target == 26.5
+    assert calls == [1, 9, 1, 1, 1, 1, 1]
+    assert delays == [1, 2, 4, 8]
+
+
+def test_readback_float_tolerance_does_not_accept_another_wire_step():
+    from zota_wire.protocol import BoilerState, setting_matches
+
+    raw = bytearray(CAPTURE)
+    struct.pack_into("<h", raw, 30, 87)
+    raw[44] = 23
+    state = BoilerState.parse(bytes(raw))
+    assert setting_matches(state, "air_target", 8.700000000000001)
+    assert not setting_matches(state, "air_target", 8.8)
+    assert not setting_matches(state, "air_target", 8.70001)
+    assert setting_matches(state, "pressure_max", 2.3000000000000003)
+    assert not setting_matches(state, "pressure_max", 2.4)

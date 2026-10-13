@@ -214,13 +214,17 @@ class ZotaClient:
                 return before
             await self._request(reader, writer, command, payload)
             # Read-only retries allow time for the controller to publish its state.
-            for attempt in range(3):
+            for delay in (0, 1, 2, 4, 8):
+                if delay:
+                    await asyncio.sleep(delay)
                 after = BoilerState.parse(await self._request(reader, writer, 1))
                 if setting_matches(after, key, value):
                     return after
-                if attempt < 2:
-                    await asyncio.sleep(1)
-            raise ZotaError("Command acknowledged, but readback does not confirm the requested value")
+            actual = after.values()[key] if key in after.values() else getattr(after, key)
+            raise ZotaError(
+                f"Command acknowledged, but readback does not confirm the requested value: "
+                f"{key}, requested={value!r}, readback={actual!r}"
+            )
 
     async def schedule(self, changes=None, expected_revision=None, write=False, require_inactive=False) -> dict:
         from .schedule import patch_program, program_view, revision
