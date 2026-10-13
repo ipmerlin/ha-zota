@@ -114,7 +114,7 @@ async def check_climate_services():
 async def check_post_command_refresh(hass):
     module = import_module("custom_components.zota.coordinator")
     client = SimpleNamespace(set=AsyncMock(return_value=state))
-    entry = SimpleNamespace(options={})
+    entry = SimpleNamespace(options={}, async_on_unload=Mock())
     control = module.ZotaCoordinator(hass, entry, client)
     control.async_refresh = AsyncMock()
     control.async_set_updated_data = Mock()
