@@ -5,6 +5,7 @@ from dataclasses import replace
 from datetime import timedelta
 
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import ZotaClient
@@ -25,6 +26,30 @@ class ZotaCoordinator(DataUpdateCoordinator[BoilerState]):
             always_update=False,
         )
         self.client = client
+        self._post_command_refresh_cancels = []
+        self._post_command_refresh_generation = 0
+
+    def async_cancel_post_command_refresh(self):
+        """Cancel follow-up reads on a new command or integration unload."""
+        for cancel in self._post_command_refresh_cancels:
+            cancel()
+        self._post_command_refresh_cancels.clear()
+        self._post_command_refresh_generation += 1
+
+    async def async_refresh_after_command(self):
+        """Read all telemetry now, then catch delayed cloud/controller changes."""
+        self.async_cancel_post_command_refresh()
+        generation = self._post_command_refresh_generation
+        await self.async_refresh()
+        if generation != self._post_command_refresh_generation:
+            return
+
+        async def refresh(_now):
+            if generation == self._post_command_refresh_generation:
+                await self.async_refresh()
+
+        for delay in (10, 30):
+            self._post_command_refresh_cancels.append(async_call_later(self.hass, delay, refresh))
 
     async def _async_update_data(self):
         try:
@@ -43,3 +68,4 @@ class ZotaCoordinator(DataUpdateCoordinator[BoilerState]):
             await self.async_request_refresh()
             raise HomeAssistantError(str(err)) from err
         self.async_set_updated_data(replace(state, details=self.data.details if self.data else None))
+        await self.async_refresh_after_command()

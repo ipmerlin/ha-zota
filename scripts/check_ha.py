@@ -5,7 +5,7 @@ import sys
 from importlib import import_module
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from custom_components.zota.api import Boiler  # noqa: E402
@@ -84,6 +84,7 @@ async def check_climate_services():
     assert len({entity.unique_id for entity in all_entities}) == len(all_entities)
     print("Checked entity properties:", len(all_entities))
     from homeassistant.core import HomeAssistant
+
     from custom_components.zota.services import register_services
 
     hass = HomeAssistant(str(Path.cwd()))
@@ -94,6 +95,7 @@ async def check_climate_services():
     hass.config_entries = SimpleNamespace(async_get_entry=lambda entry_id: fake_entry)
     coordinator.client.schedule = AsyncMock(return_value={"revision": "test", "confirmed": True})
     coordinator.async_request_refresh = AsyncMock()
+    coordinator.async_refresh_after_command = AsyncMock()
     response = await hass.services.async_call("zota", "get_schedule", {"entry_id": "test"},
                                              blocking=True, return_response=True)
     assert response["revision"] == "test"
@@ -104,12 +106,61 @@ async def check_climate_services():
     await hass.services.async_call("zota", "save_schedule", {
         "entry_id": "test", "changes": changes, "expected_revision": "0" * 64}, blocking=True)
     assert coordinator.client.schedule.await_args.args == (changes, "0" * 64, True)
-    coordinator.async_request_refresh.assert_awaited_once()
+    coordinator.async_refresh_after_command.assert_awaited_once()
+    await check_post_command_refresh(hass)
     await check_configuration_paths(hass)
+
+
+async def check_post_command_refresh(hass):
+    module = import_module("custom_components.zota.coordinator")
+    client = SimpleNamespace(set=AsyncMock(return_value=state))
+    entry = SimpleNamespace(options={})
+    control = module.ZotaCoordinator(hass, entry, client)
+    control.async_refresh = AsyncMock()
+    control.async_set_updated_data = Mock()
+    timers = []
+
+    def schedule(hass, delay, callback):
+        cancel = Mock()
+        timers.append((delay, callback, cancel))
+        return cancel
+
+    with patch.object(module, "async_call_later", side_effect=schedule):
+        await control.async_set("air_target", 26.5)
+        client.set.assert_awaited_once_with("air_target", 26.5)
+        control.async_set_updated_data.assert_called_once()
+        control.async_refresh.assert_awaited_once()
+        assert [delay for delay, _, _ in timers] == [10, 30]
+        for _, callback, _ in timers:
+            await callback(None)
+        assert control.async_refresh.await_count == 3
+        assert client.set.await_count == 1
+
+        old_timers = list(timers)
+        await control.async_refresh_after_command()
+        for _, _, cancel in old_timers:
+            cancel.assert_called_once()
+        count = control.async_refresh.await_count
+        await old_timers[0][1](None)
+        assert control.async_refresh.await_count == count
+        control.async_cancel_post_command_refresh()
+        for _, callback, cancel in timers[2:]:
+            cancel.assert_called_once()
+            await callback(None)
+        assert control.async_refresh.await_count == count
+        assert not control._post_command_refresh_cancels
+
+        # Unloading or a newer command during a read must not recreate timers.
+        control.async_refresh = AsyncMock(side_effect=control.async_cancel_post_command_refresh)
+        timer_count = len(timers)
+        await control.async_refresh_after_command()
+        assert len(timers) == timer_count
+    print("Post-command reads, replacement and unload cleanup passed")
 
 
 async def check_configuration_paths(hass):
     from homeassistant import config_entries
+
     from custom_components.zota.protocol import ZotaError
 
     module = import_module("custom_components.zota.config_flow")

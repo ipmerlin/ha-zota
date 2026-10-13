@@ -36,7 +36,7 @@ def register_services(hass):
             result = await coordinator.client.schedule(
                 call.data.get("changes"), call.data.get("expected_revision"), call.service == "save_schedule")
             if call.service == "save_schedule":
-                await coordinator.async_request_refresh()
+                await coordinator.async_refresh_after_command()
             return result if call.return_response else None
         except ZotaError as err:
             raise HomeAssistantError(str(err)) from err
