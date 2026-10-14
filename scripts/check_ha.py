@@ -108,7 +108,42 @@ async def check_climate_services():
     assert coordinator.client.schedule.await_args.args == (changes, "0" * 64, True)
     coordinator.async_refresh_after_command.assert_awaited_once()
     await check_post_command_refresh(hass)
+    await check_read_recovery(hass)
     await check_configuration_paths(hass)
+
+
+async def check_read_recovery(hass):
+    from homeassistant.exceptions import ConfigEntryAuthFailed
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
+    module = import_module("custom_components.zota.coordinator")
+    protocol = import_module("custom_components.zota.protocol")
+    client = SimpleNamespace(fetch=AsyncMock())
+    control = module.ZotaCoordinator(hass, SimpleNamespace(options={}, async_on_unload=Mock()), client)
+    control.data = state
+    fresh = replace(state, details={})
+    client.fetch.side_effect = [protocol.ZotaConnectionError("Timed out"), fresh]
+    with patch.object(module.asyncio, "sleep", AsyncMock()) as sleep:
+        result = await control._async_update_data()
+        assert result.raw == fresh.raw and result.details == state.details
+        assert client.fetch.await_count == 2
+        sleep.assert_awaited_once_with(2)
+
+        for error, expected, attempts in (
+            (protocol.ZotaConnectionError("Offline"), UpdateFailed, 2),
+            (protocol.ZotaAuthError("Rejected"), ConfigEntryAuthFailed, 1),
+            (protocol.ZotaError("Invalid packet"), UpdateFailed, 1),
+        ):
+            client.fetch.reset_mock()
+            client.fetch.side_effect = error
+            try:
+                await control._async_update_data()
+            except expected:
+                pass
+            else:
+                raise AssertionError("Persistent failure must not return cached telemetry")
+            assert client.fetch.await_count == attempts
+    print("Transient read recovery, metadata preservation and persistent outage checks passed")
 
 
 async def check_post_command_refresh(hass):
@@ -118,6 +153,7 @@ async def check_post_command_refresh(hass):
     control = module.ZotaCoordinator(hass, entry, client)
     control.async_refresh = AsyncMock()
     control.async_set_updated_data = Mock()
+    control.async_set_update_error = Mock()
     timers = []
 
     def schedule(hass, delay, callback):
@@ -156,6 +192,19 @@ async def check_post_command_refresh(hass):
         await control.async_refresh_after_command()
         assert len(timers) == timer_count
     print("Post-command reads, replacement and unload cleanup passed")
+
+    from homeassistant.exceptions import HomeAssistantError
+
+    control.async_refresh = AsyncMock()
+    client.set.side_effect = module.ZotaError("Command not confirmed")
+    try:
+        await control.async_set("air_target", 26.5)
+    except HomeAssistantError:
+        pass
+    else:
+        raise AssertionError("Failed command must still be reported")
+    control.async_set_update_error.assert_not_called()
+    control.async_refresh.assert_awaited_once()
 
 
 async def check_configuration_paths(hass):

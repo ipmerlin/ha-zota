@@ -1,5 +1,6 @@
 """Central poll and control handling."""
 
+import asyncio
 import logging
 from dataclasses import replace
 from datetime import timedelta
@@ -10,7 +11,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import ZotaClient
 from .const import CONF_INTERVAL, DEFAULT_INTERVAL
-from .protocol import BoilerState, ZotaAuthError, ZotaError
+from .protocol import BoilerState, ZotaAuthError, ZotaConnectionError, ZotaError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,7 +54,15 @@ class ZotaCoordinator(DataUpdateCoordinator[BoilerState]):
 
     async def _async_update_data(self):
         try:
-            return await self.client.fetch(extended=True)
+            try:
+                state = await self.client.fetch(extended=True)
+            except ZotaConnectionError:
+                # Retry only a read, through a fresh authenticated connection.
+                await asyncio.sleep(2)
+                state = await self.client.fetch(extended=True)
+            if self.data and self.data.details:
+                state = replace(state, details={**self.data.details, **(state.details or {})})
+            return state
         except ZotaAuthError as err:
             raise ConfigEntryAuthFailed("ZOTA boiler authentication failed") from err
         except ZotaError as err:
@@ -63,9 +72,9 @@ class ZotaCoordinator(DataUpdateCoordinator[BoilerState]):
         try:
             state = await self.client.set(key, value)
         except ZotaError as err:
-            # Drop stale optimistic UI state after any failed/uncertain command.
-            self.async_set_update_error(UpdateFailed(str(err)))
-            await self.async_request_refresh()
+            # A failed write does not prove sensors are offline. A fresh read
+            # determines availability and resolves any uncertain command outcome.
+            await self.async_refresh()
             raise HomeAssistantError(str(err)) from err
         self.async_set_updated_data(replace(state, details=self.data.details if self.data else None))
         await self.async_refresh_after_command()

@@ -21,6 +21,10 @@ class ZotaAuthError(ZotaError):
     """Account or boiler authentication failed."""
 
 
+class ZotaConnectionError(ZotaError):
+    """A transient socket or timeout failure; reads may be retried."""
+
+
 def frame(link: int, opcode: int, payload: bytes) -> bytes:
     """Build a frame with a payload length, not total frame length."""
     if len(payload) > 4096:

@@ -14,6 +14,7 @@ from .const import MODEL
 from .protocol import (
     BoilerState,
     ZotaAuthError,
+    ZotaConnectionError,
     ZotaError,
     auth_frame,
     command_frame,
@@ -153,7 +154,7 @@ class ZotaClient:
                     raise ZotaError("Missing boiler authorization response")
                 yield reader, writer
         except (OSError, TimeoutError, asyncio.IncompleteReadError) as err:
-            raise ZotaError("Connection failed or timed out; command outcome may be unknown") from err
+            raise ZotaConnectionError("Connection failed or timed out; command outcome may be unknown") from err
         finally:
             if writer is not None:
                 writer.close()
@@ -195,13 +196,16 @@ class ZotaClient:
                 return state
             details = dict(self._info)
             try:
-                if not self._info:
-                    self._info = parse_info(await self._request(reader, writer, 0))
-                    details.update(self._info)
-                details.update(parse_program(await self._request(reader, writer, 2)))
+                # Optional metadata must not consume the main transaction timeout
+                # and discard already received, valid sensor telemetry.
+                async with asyncio.timeout(5):
+                    if not self._info:
+                        self._info = parse_info(await self._request(reader, writer, 0))
+                        details.update(self._info)
+                    details.update(parse_program(await self._request(reader, writer, 2)))
             except ZotaAuthError:
                 raise
-            except ZotaError:
+            except (ZotaError, OSError, TimeoutError, asyncio.IncompleteReadError):
                 # Optional unsupported data must not hide valid main telemetry.
                 pass
             return replace(state, details=details)

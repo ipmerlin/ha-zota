@@ -167,3 +167,42 @@ async def test_unsupported_optional_info_keeps_main_telemetry(monkeypatch):
     monkeypatch.setattr(client, "_request", request)
     state = await client.fetch(extended=True)
     assert state.raw == CAPTURE and state.values()["air_temp"] == 17.4
+
+
+@pytest.mark.parametrize("error", [TimeoutError(), OSError("Disconnected")])
+async def test_optional_transport_failure_keeps_received_telemetry(monkeypatch, error):
+    client = ZotaClient(Boiler(1234, "Test", "unused.invalid", 0))
+
+    @asynccontextmanager
+    async def connection():
+        yield None, None
+
+    async def request(reader, writer, command):
+        if command == 1:
+            return CAPTURE
+        raise error
+
+    monkeypatch.setattr(client, "_connection", connection)
+    monkeypatch.setattr(client, "_request", request)
+    assert (await client.fetch(extended=True)).raw == CAPTURE
+
+
+async def test_optional_metadata_deadline_keeps_received_telemetry(monkeypatch):
+    import asyncio
+
+    client = ZotaClient(Boiler(1234, "Test", "unused.invalid", 0))
+    timeout = asyncio.timeout
+
+    @asynccontextmanager
+    async def connection():
+        yield None, None
+
+    async def request(reader, writer, command):
+        if command == 1:
+            return CAPTURE
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(client, "_connection", connection)
+    monkeypatch.setattr(client, "_request", request)
+    monkeypatch.setattr(asyncio, "timeout", lambda seconds: timeout(0.01))
+    assert (await client.fetch(extended=True)).raw == CAPTURE
