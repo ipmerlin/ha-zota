@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import socket
 import struct
+import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import aiohttp
@@ -24,6 +27,8 @@ from .protocol import (
     setting_command,
     setting_matches,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -136,15 +141,24 @@ class ZotaClient:
         self.timeout = timeout
         self._lock = asyncio.Lock()
         self._info = {}
+        self._transport_phase = "idle"
+        self.last_connection_error = None
 
     @asynccontextmanager
     async def _connection(self):
         writer = None
+        peer_ip = None
+        started = time.monotonic()
+        self._transport_phase = "connect"
         try:
             async with asyncio.timeout(self.timeout):
                 # MK-X cloud endpoints provide IPv4. Avoid AAAA SERVFAIL from
                 # resolvers which otherwise fail a combined A/AAAA lookup.
                 reader, writer = await asyncio.open_connection(self.boiler.server, 1977, family=socket.AF_INET)
+                if hasattr(writer, "get_extra_info"):
+                    peer = writer.get_extra_info("peername")
+                    peer_ip = peer[0] if peer else None
+                self._transport_phase = "authentication"
                 writer.write(auth_frame(self.boiler.serial, self.boiler.password))
                 await writer.drain()
                 for _ in range(20):
@@ -157,7 +171,20 @@ class ZotaClient:
                     raise ZotaError("Missing boiler authorization response")
                 yield reader, writer
         except (OSError, TimeoutError, asyncio.IncompleteReadError) as err:
-            raise ZotaConnectionError("Connection failed or timed out; command outcome may be unknown") from err
+            elapsed = round(time.monotonic() - started, 2)
+            self.last_connection_error = {
+                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                "phase": self._transport_phase,
+                "error_type": type(err).__name__,
+                "errno": getattr(err, "errno", None),
+                "elapsed_seconds": elapsed,
+                "peer_ip": peer_ip,
+            }
+            _LOGGER.debug("ZOTA transport failure: %s", self.last_connection_error, exc_info=True)
+            raise ZotaConnectionError(
+                f"Connection failed: phase={self._transport_phase}, error={type(err).__name__}, "
+                f"errno={getattr(err, 'errno', None)}, elapsed={elapsed}s, peer={peer_ip}"
+            ) from err
         finally:
             if writer is not None:
                 writer.close()
@@ -174,6 +201,7 @@ class ZotaClient:
         return link, opcode, await reader.readexactly(length)
 
     async def _request(self, reader, writer, command: int, payload: bytes = b"") -> bytes:
+        self._transport_phase = f"command_{command}"
         writer.write(command_frame(command, payload))
         await writer.drain()
         for _ in range(40):

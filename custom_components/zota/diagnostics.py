@@ -7,5 +7,6 @@ async def async_get_config_entry_diagnostics(hass, entry):
         "model": "MK-X",
         "last_update_success": coordinator.last_update_success,
         "poll_interval_seconds": coordinator.update_interval.total_seconds(),
+        "last_connection_error": coordinator.client.last_connection_error,
         "values": coordinator.data.values() if coordinator.data else None,
     }

@@ -257,3 +257,37 @@ def test_readback_float_tolerance_does_not_accept_another_wire_step():
     assert not setting_matches(state, "air_target", 8.70001)
     assert setting_matches(state, "pressure_max", 2.3000000000000003)
     assert not setting_matches(state, "pressure_max", 2.4)
+
+
+@pytest.mark.parametrize("phase", ["connect", "authentication", "command_1"])
+async def test_transport_error_identifies_failure_phase_without_credentials(monkeypatch, phase):
+    from zota_wire.protocol import ZotaConnectionError
+
+    class ClosingWriter(Writer):
+        def get_extra_info(self, name):
+            assert name == "peername"
+            return ("192.0.2.1", 1977)
+
+        def close(self):
+            pass
+
+        async def wait_closed(self):
+            pass
+
+    async def connect(*args, **kwargs):
+        if phase == "connect":
+            raise OSError(101, "Network is unreachable")
+        packets = [frame(0, 1, b"\x00\x00\x00\x00")] if phase == "command_1" else []
+        return reader_for(*packets), ClosingWriter()
+
+    monkeypatch.setattr(asyncio, "open_connection", connect)
+    api = client()
+    with pytest.raises(ZotaConnectionError, match=f"phase={phase}") as error:
+        await api.fetch()
+    details = api.last_connection_error
+    assert details["phase"] == phase
+    assert details["errno"] == (101 if phase == "connect" else None)
+    assert details["peer_ip"] == (None if phase == "connect" else "192.0.2.1")
+    assert details["elapsed_seconds"] >= 0
+    assert details["timestamp_utc"]
+    assert "5678" not in str(error.value) and "1234" not in str(error.value)
