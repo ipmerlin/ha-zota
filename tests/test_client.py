@@ -1,4 +1,5 @@
 import asyncio
+import socket
 import struct
 from contextlib import asynccontextmanager
 
@@ -133,7 +134,8 @@ async def test_auth_failure_closes_tcp_connection(monkeypatch):
 
     writer = ClosingWriter()
 
-    async def connect(*args):
+    async def connect(*args, **kwargs):
+        assert kwargs["family"] == socket.AF_INET
         return reader_for(frame(0, 1, b"\x00\x00\x01\x00")), writer
 
     monkeypatch.setattr(asyncio, "open_connection", connect)
@@ -178,13 +180,13 @@ async def test_full_tcp_control_transaction(monkeypatch):
 
     server = await asyncio.start_server(peer, "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]
-    real_connect = asyncio.open_connection
-
-    async def local_connect(host, requested_port):
+    async def resolve(host, requested_port, *, family=0, type=0, proto=0, flags=0):
         assert host == "unused.invalid" and requested_port == 1977
-        return await real_connect("127.0.0.1", port)
+        if family != socket.AF_INET:
+            raise socket.gaierror(socket.EAI_AGAIN, "Simulated AAAA SERVFAIL")
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("127.0.0.1", port))]
 
-    monkeypatch.setattr(asyncio, "open_connection", local_connect)
+    monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", resolve)
     async with server:
         result = await client().set("air_target", 21.5)
         await asyncio.wait_for(peer_done.wait(), 2)

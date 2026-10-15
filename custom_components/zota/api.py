@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import socket
 import struct
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
@@ -141,7 +142,9 @@ class ZotaClient:
         writer = None
         try:
             async with asyncio.timeout(self.timeout):
-                reader, writer = await asyncio.open_connection(self.boiler.server, 1977)
+                # MK-X cloud endpoints provide IPv4. Avoid AAAA SERVFAIL from
+                # resolvers which otherwise fail a combined A/AAAA lookup.
+                reader, writer = await asyncio.open_connection(self.boiler.server, 1977, family=socket.AF_INET)
                 writer.write(auth_frame(self.boiler.serial, self.boiler.password))
                 await writer.drain()
                 for _ in range(20):
